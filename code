@@ -1,219 +1,122 @@
+#
 #include <iostream>
-#include <string>
 #include <vector>
-#include <sstream>
+#include <cstdlib>
+#include <ctime>
+#include "Matrix.hpp"              // старый заголовок
+#include "ClockLibrary/Clock.hpp"  // наша библиотека
+#include "ClockLibrary/Battery.hpp"
+#include "ClockLibrary/Workshop.hpp"
 
-struct Battery {
+// Старая функция из лабораторной по матрицам
+class Matrix {
 private:
-    int currentCharge;
-    int maxCharge;
-
+    std::vector<std::vector<int>> data;
+    int rows, cols;
+    
 public:
-    Battery(int curr = 100, int max = 100) : currentCharge(curr), maxCharge(max) {}
-
-    int getCurrentCharge() const { return currentCharge; }
-    int getMaxCharge() const { return maxCharge; }
-
-    void consumeCharge(int amount) {
-        if (currentCharge - amount >= 0) {
-            currentCharge -= amount;
-        }
-        else {
-            currentCharge = 0;
+    Matrix(int r, int c) : rows(r), cols(c) {
+        data.resize(r, std::vector<int>(c, 0));
+    }
+    
+    void fillRandom() {
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                data[i][j] = rand() % 100;
+            }
         }
     }
-
-    void replaceBattery(const Battery& newBattery) {
-        currentCharge = newBattery.currentCharge;
-        maxCharge = newBattery.maxCharge;
-    }
-};
-
-class Clock {
-private:
-    int day;
-    int month;
-    int year;
-    int hours;
-    int minutes;
-    int dayOfWeek;
-    Battery battery;
-
-public:
-    Clock() : day(1), month(1), year(2000), hours(0), minutes(0),
-        dayOfWeek(1), battery(100, 100) {
-    }
-
-    Clock(int d, int m, int y, int h, int min, int dow)
-        : day(d), month(m), year(y), hours(h), minutes(min),
-        dayOfWeek(dow), battery(100, 100) {
-    }
-
-    Clock(const Clock& other)
-        : day(other.day), month(other.month), year(other.year),
-        hours(other.hours), minutes(other.minutes),
-        dayOfWeek(other.dayOfWeek), battery(other.battery) {
-    }
-
-    ~Clock() {}
-
-    int getDay() const { return day; }
-    int getMonth() const { return month; }
-    int getYear() const { return year; }
-    int getHours() const { return hours; }
-    int getMinutes() const { return minutes; }
-    int getDayOfWeek() const { return dayOfWeek; }
-
-    void setDay(int d) { if (d > 0 && d <= 28) day = d; }
-    void setMonth(int m) { if (m > 0 && m <= 12) month = m; }
-    void setYear(int y) { year = y; }
-    void setHours(int h) { if (h >= 0 && h < 24) hours = h; }
-    void setMinutes(int min) { if (min >= 0 && min < 60) minutes = min; }
-    void setDayOfWeek(int dow) { if (dow >= 0 && dow <= 6) dayOfWeek = dow; }
-
-    std::string printInfo() const {
-        std::ostringstream oss;
-        oss << "Дата: " << day << "." << month << "." << year << "\n"
-            << "Время: " << hours << ":" << (minutes < 10 ? "0" : "") << minutes << "\n"
-            << "День недели: " << dayOfWeek << "\n"
-            << "Батарейка: " << battery.getCurrentCharge() << "/" << battery.getMaxCharge() << " е.з.";
-        return oss.str();
-    }
-
-    Clock& operator++() {
-        if (battery.getCurrentCharge() > 0) {
-            minutes++;
-            if (minutes >= 60) {
-                minutes = 0;
-                hours++;
-                if (hours >= 24) {
-                    hours = 0;
-                    day++;
-                    dayOfWeek = (dayOfWeek + 1) % 7;
-                    battery.consumeCharge(1);
-
-                    if (day > 28) {
-                        day = 1;
-                        month++;
-                        if (month > 12) {
-                            month = 1;
-                            year++;
-                        }
-                    }
+    
+    Matrix multiply(const Matrix& other) {
+        Matrix result(rows, other.cols);
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < other.cols; j++) {
+                for (int k = 0; k < cols; k++) {
+                    result.data[i][j] += data[i][k] * other.data[k][j];
                 }
             }
         }
-        return *this;
-    }
-
-    Clock operator++(int) {
-        Clock temp = *this;
-        ++(*this);
-        return temp;
-    }
-
-    Clock operator+(int minutes) const {
-        Clock result = *this;
-        result.addMinutes(minutes);
         return result;
     }
-
-    Clock operator/(int days) const {
-        Clock newClock = *this;
-        for (int i = 0; i < days; ++i) {
-            ++newClock;
+    
+    void print() {
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                std::cout << data[i][j] << "\t";
+            }
+            std::cout << std::endl;
         }
-        return newClock;
-    }
-
-    void addMinutes(int x) {
-        for (int i = 0; i < x; ++i) {
-            ++(*this);
-        }
-    }
-
-    void replaceBattery(const Battery& newBattery) {
-        battery.replaceBattery(newBattery);
     }
 };
 
-class Workshop {
-private:
-    std::string address;
-    std::vector<Clock> clocksInWork;
-
-public:
-    Workshop() : address("Не указан") {}
-
-    Workshop(const std::string& addr) : address(addr) {}
-
-    Workshop(const std::string& addr, const std::vector<Clock>& clocks)
-        : address(addr), clocksInWork(clocks) {
-    }
-
-    void replaceBatteryInClock(int clockIndex, const Battery& newBattery) {
-        if (clockIndex >= 0 && clockIndex < static_cast<int>(clocksInWork.size())) {
-            clocksInWork[clockIndex].replaceBattery(newBattery);
-        }
-    }
-
-    std::string printInfo() const {
-        std::ostringstream oss;
-        oss << "Мастерская по адресу: " << address << "\n";
-        oss << "Часов в работе: " << clocksInWork.size() << "\n";
-        for (size_t i = 0; i < clocksInWork.size(); ++i) {
-            oss << "Часы " << (i + 1) << " ---\n";
-            oss << clocksInWork[i].printInfo() << "\n";
-        }
-        return oss.str();
-    }
-
-    std::string getAddress() const { return address; }
-    size_t getClocksCount() const { return clocksInWork.size(); }
-};
-
-void printPersonalGrade() {
-    std::cout << "ОЦЕНКА";
-    std::cout << "Интерес: 9/10";
-    std::cout << "Наполненность: 9/10";
-    std::cout << "Сложность: 8/10";
+// Функция для демонстрации работы с мастерской
+void demonstrateWorkshop() {
+    std::cout << "\n=== ДЕМОНСТРАЦИЯ МАСТЕРСКОЙ ===\n";
+    
+    // Создаем часы для мастерской
+    Clock clock1(1, 1, 2026, 9, 0, 1);
+    Clock clock2(1, 1, 2026, 14, 30, 1);
+    Clock clock3(2, 1, 2026, 10, 15, 2);
+    
+    std::vector<Clock> clocks = {clock1, clock2, clock3};
+    Workshop workshop("ул. Ленина, д. 1", clocks);
+    
+    std::cout << "Информация о мастерской:\n";
+    std::cout << workshop.printInfo() << std::endl;
+    
+    // Заменяем батарейку
+    std::cout << "\nЗаменяем батарейку во вторых часах...\n";
+    Battery newBattery(80, 120);
+    workshop.replaceBatteryInClock(1, newBattery);
+    
+    std::cout << workshop.printInfo() << std::endl;
 }
-
 int main() {
     setlocale(LC_ALL, "Russian");
-    Clock myClock(15, 2, 2024, 10, 30, 4);
-    std::cout << myClock.printInfo() << std::endl;
-    myClock.addMinutes(90);
-    std::cout << myClock.printInfo() << std::endl;
-    ++myClock;
-    std::cout << myClock.printInfo() << std::endl;
-    Clock plusClock = myClock + 30;
-    std::cout << myClock.printInfo() << std::endl;
-    std::cout << plusClock.printInfo() << std::endl;
-    Clock tempClock = myClock++;
-    std::cout  << tempClock.printInfo() << std::endl;
-    std::cout << myClock.printInfo() << std::endl;
+    srand(time(nullptr));
+    
 
-    Clock futureClock = myClock / 2;
-    std::cout << futureClock.printInfo() << std::endl;
-
-    Clock clock1(1, 1, 2023, 12, 0, 1);
-    Clock clock2(20, 12, 2023, 23, 59, 3);
-
-    std::vector<Clock> clocks = { clock1, clock2 };
-    Workshop myWorkshop("ул. Пушкина, д. Колотушкина", clocks);
-
-    std::cout << "Состояние мастерской до замены батарейки";
-    std::cout << myWorkshop.printInfo() << std::endl;
-
-    std::cout << "Заменяем батарейку в первых часах";
-    Battery newBattery(50, 150);
-    myWorkshop.replaceBatteryInClock(0, newBattery);
-
-    std::cout << "\n--- Состояние мастерской после замены батарейки ---\n";
-    std::cout << myWorkshop.printInfo() << std::endl;
-
-    printPersonalGrade();
-
+    Clock timer(15, 3, 2024, 10, 0, 5);
+    std::cout << "Начало работы: " << timer.printInfo() << "\n\n";
+    
+    // Старая функциональность - работа с матрицами
+    std::cout << "Создаем и заполняем матрицы...\n";
+    Matrix A(3, 3);
+    Matrix B(3, 3);
+    
+    A.fillRandom();
+    B.fillRandom();
+    
+    std::cout << "Матрица A:\n";
+    A.print();
+    std::cout << "\nМатрица B:\n";
+    B.print();
+    
+    // Замеряем время умножения
+    std::cout << "\nУмножаем матрицы...\n";
+    timer.addMinutes(5); // прошло 5 минут
+    Matrix C = A.multiply(B);
+    
+    std::cout << "Результат умножения:\n";
+    C.print();
+    
+    // Показываем текущее время
+    std::cout << "\nТекущее время: " << timer.printInfo() << std::endl;
+    
+    // Проверяем состояние батарейки
+    std::cout << "\nСостояние батарейки часов: ";
+    std::cout << timer.printInfo() << std::endl;
+    
+    // ИСПОЛЬЗУЕМ ОПЕРАТОРЫ НАШЕЙ БИБЛИОТЕКИ
+    std::cout << "\n=== ДЕМОНСТРАЦИЯ ОПЕРАТОРОВ ===\n";
+    Clock futureTime = timer + 30;  // добавляем 30 минут
+    std::cout << "Через 30 минут будет: " << futureTime.printInfo() << std::endl;
+    
+    Clock nextDay = timer / 1;  // добавляем 1 день
+    std::cout << "Завтра в это же время: " << nextDay.printInfo() << std::endl;
+    
+    // Демонстрируем работу мастерской
+    demonstrateWorkshop();
+    
     return 0;
 }
