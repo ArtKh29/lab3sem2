@@ -1,0 +1,21 @@
+cmake_minimum_required(VERSION 3.10)
+project(ClockWorkshop)
+
+set(CMAKE_CXX_STANDARD 17)
+
+if(WIN32)
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+endif()
+
+add_library(clock_library STATIC clock.cpp)
+
+add_executable(clock_app main.cpp)
+
+target_link_libraries(clock_app clock_library)
+
+if(WIN32)
+    set_target_properties(clock_app PROPERTIES
+        WIN32_EXECUTABLE YES
+        LINK_FLAGS "/ENTRY:mainCRTStartup"
+    )
+endif()
