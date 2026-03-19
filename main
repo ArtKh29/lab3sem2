@@ -1,0 +1,119 @@
+#include "clock.hpp"
+#include <iostream>
+#include <vector>
+#include <windows.h>
+
+using namespace horology;
+using namespace std;
+
+void printLabAssessment() {
+    cout << "\nОЦЕНКА ЛАБОРАТОРНОЙ РАБОТЫ" << endl;
+    cout << "Интерес (1-10):     9" << endl;
+    cout << "Наполненность (1-10):     8" << endl;
+    cout << "Сложность (1-10):    7" << endl;
+}
+
+int main() {
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
+    setlocale(LC_ALL, "Russian");
+    
+    cout << "ЛАБОРАТОРНАЯ РАБОТА: ЧАСОВАЯ МАСТЕРСКАЯ" << endl;
+    
+    cout << "\n ЧАСТЬ 1: Демонстрация часов" << endl;
+    
+    Clock clock1;
+    Clock clock2(15, 3, 2024, 14, 30, 2, 100);
+    Clock clock3(28, 2, 2024, 23, 45, 3, 50);
+    
+    cout << "\nСозданные часы:" << endl;
+    clock1.displayInfo();
+    clock2.displayInfo();
+    clock3.displayInfo();
+    
+    Clock clock4 = clock2;
+    cout << "\nСкопированные часы (из clock2):" << endl;
+    clock4.displayInfo();
+    
+    cout << "\n--- ЧАСТЬ 2: Добавление времени с расходом батарейки ---" << endl;
+    
+    cout << "\nЧасы 3 перед добавлением времени:" << endl;
+    clock3.displayInfo();
+    
+    cout << "\nДобавление 30 минут (должно потратить 1 единицу заряда):" << endl;
+    clock3.addMinutes(30);
+    
+    cout << "\nДобавление 2 дней (2880 минут, должно потратить 2 единицы заряда):" << endl;
+    clock3.addMinutes(2880);
+    
+    cout << "\nПопытка добавить время с низким зарядом:" << endl;
+    clock3.addMinutes(1000);
+    
+    cout << "\n--- ЧАСТЬ 3: Перегруженные операторы ---" << endl;
+    
+    Clock clock5(1, 1, 2024, 10, 0, 0, 100);
+    cout << "\nЧасы 5 перед операциями:" << endl;
+    clock5.displayInfo();
+    
+    cout << "\nПрименение префиксного -- (уменьшение на 1 минуту):" << endl;
+    --clock5;
+    clock5.displayInfo();
+    
+    cout << "\nПрименение оператора / 2 (деление минут на 2):" << endl;
+    Clock clock6 = clock5 / 2;
+    clock6.displayInfo();
+    
+    cout << "\n--- ЧАСТЬ 4: Демонстрация мастерской ---" << endl;
+    
+    Workshop workshop("ул. Ленина, 15");
+    
+    cout << "\nДобавление часов в мастерскую:" << endl;
+    workshop.addClock(&clock1);
+    workshop.addClock(&clock2);
+    workshop.addClock(&clock3);
+    
+    workshop.addClock(&clock1);
+    
+    workshop.displayInfo();
+    
+    cout << "\nЗамена батарейки в часах 3:" << endl;
+    workshop.replaceBattery(&clock3, 200);
+    
+    cout << "\nЧасы 3 после замены батарейки:" << endl;
+    clock3.displayInfo();
+    
+    cout << "\nДобавление времени с новой батарейкой:" << endl;
+    clock3.addMinutes(3000);
+    
+    cout << "\nУдаление часов 2 из мастерской:" << endl;
+    workshop.removeClock(&clock2);
+    workshop.displayInfo();
+    
+    cout << "\n--- ЧАСТЬ 5: Демонстрация структуры Батарейка ---" << endl;
+    
+    Battery battery1;
+    Battery battery2(150);
+    Battery battery3(75, 100);
+    
+    cout << "Батарейка 1: ";
+    battery1.displayInfo();
+    cout << endl;
+    
+    cout << "Батарейка 2: ";
+    battery2.displayInfo();
+    cout << endl;
+    
+    cout << "Батарейка 3: ";
+    battery3.displayInfo();
+    cout << endl;
+    
+    battery3.discharge(30);
+    cout << "После разрядки на 30 единиц: ";
+    battery3.displayInfo();
+    cout << endl;
+    
+    cout << "\n--- ЧАСТЬ 6: Личная оценка ---" << endl;
+    printLabAssessment();
+    
+    return 0;
+}
