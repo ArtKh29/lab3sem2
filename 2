@@ -1,0 +1,286 @@
+#include "clock.hpp"
+#include <iomanip>
+#include <algorithm>
+
+namespace horology {
+
+Battery::Battery() : current_charge(100), max_charge(100) {
+    std::cout << "Батарейка: конструктор по умолчанию (100/100)" << std::endl;
+}
+
+Battery::Battery(int max) : current_charge(max), max_charge(max) {
+    std::cout << "Батарейка: конструктор с макс. зарядом (" << max << ")" << std::endl;
+}
+
+Battery::Battery(int current, int max) : current_charge(current), max_charge(max) {
+    if (current_charge > max_charge) current_charge = max_charge;
+    if (current_charge < 0) current_charge = 0;
+    std::cout << "Батарейка: полный конструктор (" << current_charge << "/" << max_charge << ")" << std::endl;
+}
+
+void Battery::discharge(int amount) {
+    current_charge -= amount;
+    if (current_charge < 0) current_charge = 0;
+}
+
+bool Battery::isDead() const {
+    return current_charge <= 0;
+}
+
+int Battery::getChargePercentage() const {
+    if (max_charge == 0) return 0;
+    return (current_charge * 100) / max_charge;
+}
+
+void Battery::displayInfo() const {
+    std::cout << "Батарейка: " << current_charge << "/" << max_charge 
+              << " (" << getChargePercentage() << "%)";
+    if (isDead()) std::cout << " [РАЗРЯЖЕНА]";
+}
+
+bool Clock::isLeapYear(int y) const {
+    return (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0);
+}
+
+int Clock::getDaysInMonth(int m, int y) const {
+    if (m == 2) return 20;
+    
+    switch(m) {
+        case 4: case 6: case 9: case 11: return 30;
+        case 1: case 3: case 5: case 7: case 8: case 10: case 12: return 31;
+        default: return 30;
+    }
+}
+
+void Clock::normalizeDateTime() {
+    if (minutes >= 60) {
+        hours += minutes / 60;
+        minutes %= 60;
+    }
+    if (minutes < 0) {
+        hours -= (abs(minutes) / 60) + 1;
+        minutes = 60 + (minutes % 60);
+        if (minutes == 60) {
+            minutes = 0;
+            hours++;
+        }
+    }
+    
+    if (hours >= 24) {
+        day += hours / 24;
+        hours %= 24;
+        weekday = (weekday + (hours / 24)) % 7;
+    }
+    if (hours < 0) {
+        day -= (abs(hours) / 24) + 1;
+        hours = 24 + (hours % 24);
+        if (hours == 24) {
+            hours = 0;
+            day++;
+        }
+        weekday = (weekday - 1 + 7) % 7;
+    }
+    
+    while (day > getDaysInMonth(month, year)) {
+        day -= getDaysInMonth(month, year);
+        month++;
+        if (month > 12) {
+            month = 1;
+            year++;
+        }
+    }
+    
+    while (day < 1) {
+        month--;
+        if (month < 1) {
+            month = 12;
+            year--;
+        }
+        day += getDaysInMonth(month, year);
+    }
+}
+
+Clock::Clock() : day(1), month(1), year(2024), hours(0), minutes(0), weekday(0), battery(100) {
+    std::cout << "Часы: конструктор по умолчанию (01.01.2024 00:00)" << std::endl;
+}
+
+Clock::Clock(int d, int m, int y, int h, int min, int wd, int batteryCharge) 
+    : day(d), month(m), year(y), hours(h), minutes(min), weekday(wd % 7), battery(batteryCharge) {
+    normalizeDateTime();
+    std::cout << "Часы: полный конструктор" << std::endl;
+}
+
+Clock::Clock(const Clock& other) 
+    : day(other.day), month(other.month), year(other.year), 
+      hours(other.hours), minutes(other.minutes), weekday(other.weekday), 
+      battery(other.battery) {
+    std::cout << "Часы: конструктор копирования" << std::endl;
+}
+
+Clock::~Clock() {
+    std::cout << "Часы: деструктор" << std::endl;
+}
+
+int Clock::getDay() const { return day; }
+int Clock::getMonth() const { return month; }
+int Clock::getYear() const { return year; }
+int Clock::getHours() const { return hours; }
+int Clock::getMinutes() const { return minutes; }
+int Clock::getWeekday() const { return weekday; }
+Battery Clock::getBattery() const { return battery; }
+
+void Clock::setDay(int d) { day = d; normalizeDateTime(); }
+void Clock::setMonth(int m) { month = m; normalizeDateTime(); }
+void Clock::setYear(int y) { year = y; normalizeDateTime(); }
+void Clock::setHours(int h) { hours = h; normalizeDateTime(); }
+void Clock::setMinutes(int min) { minutes = min; normalizeDateTime(); }
+void Clock::setWeekday(int wd) { weekday = wd % 7; }
+void Clock::setBattery(const Battery& b) { battery = b; }
+
+void Clock::addMinutes(int mins) {
+    if (mins < 0) return;
+    
+    int daysToAdd = mins / (24 * 60);
+    int remainingMins = mins % (24 * 60);
+    
+    int batteryNeeded = daysToAdd;
+    if (remainingMins > 0) batteryNeeded++;
+    
+    if (battery.current_charge < batteryNeeded) {
+        std::cout << "Недостаточно заряда! Добавление времени остановлено." << std::endl;
+        battery.discharge(battery.current_charge);
+        return;
+    }
+    
+    battery.discharge(batteryNeeded);
+    
+    minutes += mins;
+    normalizeDateTime();
+    
+    std::cout << "Добавлено " << mins << " минут. Новое время: ";
+    displayInfo();
+}
+
+void Clock::displayInfo() const {
+    const char* weekdays[] = {"Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"};
+    
+    std::cout << "\n========== ИНФОРМАЦИЯ О ЧАСАХ ==========" << std::endl;
+    std::cout << "Дата: " << std::setfill('0') << std::setw(2) << day << "."
+              << std::setw(2) << month << "." << year << std::endl;
+    std::cout << "Время: " << std::setw(2) << hours << ":" 
+              << std::setw(2) << minutes << std::endl;
+    std::cout << "День недели: " << weekdays[weekday] << std::endl;
+    std::cout << "Батарейка: ";
+    battery.displayInfo();
+    std::cout << "\n=========================================" << std::endl;
+}
+
+Clock Clock::operator--() {
+    addMinutes(-1);
+    return *this;
+}
+
+Clock Clock::operator--(int) {
+    Clock temp = *this;
+    addMinutes(-1);
+    return temp;
+}
+
+Clock Clock::operator/(int divisor) {
+    if (divisor == 0) {
+        std::cout << "Ошибка: деление на ноль!" << std::endl;
+        return *this;
+    }
+    
+    Clock result = *this;
+    result.minutes /= divisor;
+    result.normalizeDateTime();
+    return result;
+}
+
+Workshop::Workshop() : address("Неизвестный адрес") {
+    std::cout << "Мастерская: конструктор по умолчанию" << std::endl;
+}
+
+Workshop::Workshop(const std::string& addr) : address(addr) {
+    std::cout << "Мастерская: конструктор с адресом" << std::endl;
+}
+
+Workshop::Workshop(const std::string& addr, const std::vector<Clock*>& watches) 
+    : address(addr), watchesInRepair(watches) {
+    std::cout << "Мастерская: полный конструктор" << std::endl;
+}
+
+Workshop::Workshop(const Workshop& other) : address(other.address) {
+    watchesInRepair = other.watchesInRepair;
+    std::cout << "Мастерская: конструктор копирования" << std::endl;
+}
+
+Workshop::~Workshop() {
+    watchesInRepair.clear();
+    std::cout << "Мастерская: деструктор" << std::endl;
+}
+
+std::string Workshop::getAddress() const { return address; }
+std::vector<Clock*> Workshop::getWatchesInRepair() const { return watchesInRepair; }
+
+void Workshop::setAddress(const std::string& addr) { address = addr; }
+
+void Workshop::addClock(Clock* clock) {
+    if (!clock) return;
+    
+    if (std::find(watchesInRepair.begin(), watchesInRepair.end(), clock) == watchesInRepair.end()) {
+        watchesInRepair.push_back(clock);
+        std::cout << "Часы добавлены в мастерскую" << std::endl;
+    } else {
+        std::cout << "Часы уже находятся в мастерской" << std::endl;
+    }
+}
+
+bool Workshop::removeClock(Clock* clock) {
+    auto it = std::find(watchesInRepair.begin(), watchesInRepair.end(), clock);
+    if (it != watchesInRepair.end()) {
+        watchesInRepair.erase(it);
+        std::cout << "Часы удалены из мастерской" << std::endl;
+        return true;
+    }
+    std::cout << "Часы не найдены в мастерской" << std::endl;
+    return false;
+}
+
+void Workshop::replaceBattery(Clock* clock, int newMaxCharge) {
+    if (!clock) {
+        std::cout << "Ошибка: неверный указатель на часы!" << std::endl;
+        return;
+    }
+    
+    if (std::find(watchesInRepair.begin(), watchesInRepair.end(), clock) == watchesInRepair.end()) {
+        std::cout << "Ошибка: часы не находятся в этой мастерской!" << std::endl;
+        return;
+    }
+    
+    Battery newBattery(newMaxCharge);
+    clock->setBattery(newBattery);
+    
+    std::cout << "Батарейка заменена в часах. Новая батарейка: ";
+    newBattery.displayInfo();
+    std::cout << std::endl;
+}
+
+void Workshop::displayInfo() const {
+    std::cout << "\n========== ИНФОРМАЦИЯ О МАСТЕРСКОЙ ==========" << std::endl;
+    std::cout << "Адрес: " << address << std::endl;
+    std::cout << "Часы в ремонте: " << watchesInRepair.size() << std::endl;
+    
+    if (watchesInRepair.empty()) {
+        std::cout << "  Нет часов в ремонте" << std::endl;
+    } else {
+        for (size_t i = 0; i < watchesInRepair.size(); ++i) {
+            std::cout << "  Часы #" << (i + 1) << ":" << std::endl;
+            watchesInRepair[i]->displayInfo();
+        }
+    }
+    std::cout << "==============================================" << std::endl;
+}
+
+}
