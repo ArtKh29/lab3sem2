@@ -1,0 +1,93 @@
+#pragma once
+#ifndef CLOCK_HPP
+#define CLOCK_HPP
+
+#include <iostream>
+#include <string>
+#include <vector>
+
+namespace horology {
+
+struct Battery {
+    int current_charge;
+    int max_charge;
+    
+    Battery();
+    Battery(int max);
+    Battery(int current, int max);
+    
+    void discharge(int amount);
+    bool isDead() const;
+    int getChargePercentage() const;
+    void displayInfo() const;
+};
+
+class Clock {
+private:
+    int day;
+    int month;
+    int year;
+    int hours;
+    int minutes;
+    int weekday;
+    Battery battery;
+    
+    bool isLeapYear(int y) const;
+    int getDaysInMonth(int m, int y) const;
+    void normalizeDateTime();
+    
+public:
+    Clock();
+    Clock(int d, int m, int y, int h, int min, int wd, int batteryCharge);
+    Clock(const Clock& other);
+    ~Clock();
+    
+    int getDay() const;
+    int getMonth() const;
+    int getYear() const;
+    int getHours() const;
+    int getMinutes() const;
+    int getWeekday() const;
+    Battery getBattery() const;
+    
+    void setDay(int d);
+    void setMonth(int m);
+    void setYear(int y);
+    void setHours(int h);
+    void setMinutes(int min);
+    void setWeekday(int wd);
+    void setBattery(const Battery& b);
+    
+    void addMinutes(int minutes);
+    void displayInfo() const;
+    
+    Clock operator--();
+    Clock operator--(int);
+    Clock operator/(int divisor);
+};
+
+class Workshop {
+private:
+    std::string address;
+    std::vector<Clock*> watchesInRepair;
+    
+public:
+    Workshop();
+    Workshop(const std::string& addr);
+    Workshop(const std::string& addr, const std::vector<Clock*>& watches);
+    Workshop(const Workshop& other);
+    ~Workshop();
+    
+    std::string getAddress() const;
+    std::vector<Clock*> getWatchesInRepair() const;
+    
+    void setAddress(const std::string& addr);
+    
+    void addClock(Clock* clock);
+    bool removeClock(Clock* clock);
+    void replaceBattery(Clock* clock, int newMaxCharge);
+    void displayInfo() const;
+};
+
+}
+#endif
